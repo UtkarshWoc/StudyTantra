@@ -1,10 +1,17 @@
 import axios from 'axios';
 
 const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
-// When VITE_API_URL is set (separate backend host), use it. Otherwise use a
-// relative /api path so the Vercel proxy (vercel.json) routes API calls to the
-// backend on the same origin — this avoids CORS and third-party cookie issues.
+// When VITE_API_URL is set (separate backend host), call it directly. Otherwise
+// use a relative /api path, which only works if something in front of the app
+// proxies /api (a Vercel rewrite or the Vite dev proxy).
 export const API_BASE = rawApiUrl ? `${rawApiUrl}/api` : '/api';
+
+if (import.meta.env.PROD && !rawApiUrl) {
+  console.warn(
+    '[api] VITE_API_URL is not set. API calls will go to this origin under /api; ' +
+    'set VITE_API_URL or add a proxy rewrite in vercel.json.'
+  );
+}
 
 // The access token lives only in memory (never localStorage) so XSS can't
 // exfiltrate a long-lived credential. The refresh token is an httpOnly cookie.

@@ -665,14 +665,16 @@ The reference setup is **Railway** for the API and **Vercel** for the web app, w
 
 ### Frontend (Vercel)
 
-Set `VITE_API_URL` (and optionally `VITE_GOOGLE_CLIENT_ID` and `VITE_SENTRY_DSN`). `vercel.json` rewrites all paths to the SPA entry.
+Set `VITE_API_URL` to the backend origin (no trailing slash, no `/api`) in the Vercel project's environment variables, plus optionally `VITE_GOOGLE_CLIENT_ID` and `VITE_SENTRY_DSN`. Vite inlines these at build time, so redeploy after changing them. `vercel.json` only rewrites all paths to the SPA entry, which is what makes a direct visit to `/login` work.
+
+Vercel does not interpolate environment variables inside `vercel.json`, so the API proxy below must be hardcoded.
 
 ### Serve the API from the same site as the frontend
 
 Sessions rely on an httpOnly refresh cookie. If the frontend is on `*.vercel.app` and the API on `*.railway.app`, that cookie is third-party. Safari already blocks it and Chrome is phasing it out, which signs users out on every reload. Fix it one of two ways:
 
 - Put both behind your own domain, for example `app.example.com` and `api.example.com`.
-- Proxy the API through Vercel by adding a rewrite to `frontend/vercel.json`, placed before the SPA rewrite, and set `VITE_API_URL` to the Vercel site's own origin:
+- Proxy the API through Vercel by hardcoding a rewrite in `frontend/vercel.json`, placed before the SPA rewrite, and set `VITE_API_URL` to the Vercel site's own origin:
 
   ```json
   { "source": "/api/(.*)", "destination": "https://<your-railway-app>/api/$1" }
