@@ -1,7 +1,10 @@
 import axios from 'axios';
 
-const rawApiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').trim().replace(/\/+$/, '');
-export const API_BASE = `${rawApiUrl}/api`;
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+// When VITE_API_URL is set (separate backend host), use it. Otherwise use a
+// relative /api path so the Vercel proxy (vercel.json) routes API calls to the
+// backend on the same origin — this avoids CORS and third-party cookie issues.
+export const API_BASE = rawApiUrl ? `${rawApiUrl}/api` : '/api';
 
 // The access token lives only in memory (never localStorage) so XSS can't
 // exfiltrate a long-lived credential. The refresh token is an httpOnly cookie.

@@ -3,8 +3,12 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+      // Proxy API calls to the backend so cookies work as first-party
+      // (avoids CORS + third-party cookie blocking between Vercel and Railway).
+      // Set VERCEL_API_URL in your Vercel project settings to your backend origin,
+      // e.g. https://study-tantra-api.railway.app
+      { "source": "/api/:path*", "destination": "${env:VERCEL_API_URL}/api/:path*" },
+      { "source": "/(.*)", "destination": "/index.html" }
+    ]
   ]
 }
