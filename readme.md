@@ -662,7 +662,7 @@ The reference setup is **Render** (or **Railway**) for the API and **Vercel** fo
    - **Environment**: `Node`
    - **Build Command**: `npm install`
    - **Start Command**: `npm start` (runs `node src/server.js`)
-   - **Health Check Path**: `/healthz` (or `/health` or `/api/health`)
+   - **Health Check Path**: `/health` (or `/api/health` or `/healthz`)
 2. Set `NODE_ENV=production` and every variable from `backend/.env.example` (see [Configuration](#7-configuration-reference)). `CLIENT_URL` must be your frontend URL (e.g. `https://study-tantra-mern.vercel.app`), and `ALLOWED_ORIGIN` includes it.
 3. Render automatically provisions a dynamic `PORT` environment variable which `src/server.js` binds to `0.0.0.0`.
 4. The backend supports the full **10 MB PDF upload limit** natively without serverless payload bottlenecks.
@@ -702,7 +702,7 @@ Chunks are scored in Node by default. For large libraries, create an Atlas Vecto
 
 - **Logs**: structured JSON in production (pretty-printed in development). Set `LOG_LEVEL` to change verbosity. Sensitive fields are redacted.
 - **Errors**: set `SENTRY_DSN` / `VITE_SENTRY_DSN` to capture backend and frontend errors.
-- **Health**: poll `/healthz`.
+- **Health**: poll `/health`.
 - **Stuck documents**: a document in `failed` can be retried from the UI (or `POST /api/documents/:id/reprocess`). Anything left in `processing` after a crash is re-queued on the next boot.
 - **Gemini failures**: provider calls retry with backoff; persistent failures return `502` with a friendly message and never expose SDK errors.
 - **Cost control**: the per-user hourly AI limit, generation count caps and the per-request context cap bound spend per user.
