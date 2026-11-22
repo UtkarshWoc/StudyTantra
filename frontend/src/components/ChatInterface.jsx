@@ -154,9 +154,9 @@ const ChatInterface = ({
             <span className="material-symbols-outlined text-[19px]">neurology</span>
           </div>
           <div>
-            <h3 className="font-headline text-base font-bold text-on-surface leading-tight">Tantra AI Copilot</h3>
+            <h3 className="font-headline text-base font-bold text-on-surface leading-tight">Cody</h3>
             <span className="text-[10px] font-label font-semibold text-primary uppercase tracking-wider block">
-              Claude-3.5 Sonnet • Neural Stream
+              AI Study Assistant • Neural Stream
             </span>
           </div>
         </div>
@@ -178,7 +178,7 @@ const ChatInterface = ({
         {messages.length === 0 && !pending && (
           <Bubble sender="ai">
             <p className="font-body text-xs sm:text-sm">
-              Greetings! Ask me any conceptual derivation or definition from{' '}
+              Hey, I'm Cody! Ask me any conceptual derivation or definition from{' '}
               <strong className="text-primary">{documentTitle || 'this document'}</strong>. I will cite the exact page
               theorems and formulas.
             </p>
