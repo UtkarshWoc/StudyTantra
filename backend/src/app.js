@@ -29,6 +29,7 @@ const normalizeOrigin = (o) => o.trim().replace(/\/+$/, '').toLowerCase();
 
 const LOCALHOST_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
 const VERCEL_PREVIEW_PATTERN = /^https:\/\/(?:[a-z0-9-]+\.)*study-tantra-mern(?:-[a-z0-9-]+)*\.vercel\.app$/i;
+const RENDER_ORIGIN_PATTERN = /^https:\/\/[a-z0-9-]+\.onrender\.com$/i;
 
 const allowedOrigins = new Set([
   'http://localhost:5173',
@@ -36,6 +37,7 @@ const allowedOrigins = new Set([
   'http://localhost:5175',
   'http://localhost:3000',
   'https://study-tantra-mern.vercel.app',
+  ...(env.CLIENT_URL ? [normalizeOrigin(env.CLIENT_URL)] : []),
   // Supports a comma-separated list of origins
   ...(env.ALLOWED_ORIGIN || '').split(',').filter(Boolean).map(normalizeOrigin),
 ]);
@@ -52,6 +54,9 @@ app.use(cors({
     if (VERCEL_PREVIEW_PATTERN.test(normalized)) {
       return callback(null, true);
     }
+    if (RENDER_ORIGIN_PATTERN.test(normalized)) {
+      return callback(null, true);
+    }
     callback(null, allowedOrigins.has(normalized));
   },
   methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
@@ -63,9 +68,16 @@ app.use(cors({
 app.use(helmet());
 
 // Structured request logging (auth headers/cookies are redacted in config/logger.js)
+const isHealthUrl = (url) =>
+  url === '/' ||
+  url === '/health' ||
+  url === '/healthz' ||
+  url === '/api/health' ||
+  url === '/api/healthz';
+
 app.use(pinoHttp({
   logger,
-  autoLogging: { ignore: (req) => req.url === '/healthz' },
+  autoLogging: { ignore: (req) => isHealthUrl(req.url) },
   customLogLevel: (req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'),
 }));
 
@@ -75,6 +87,7 @@ const limiter = rateLimit({
   limit: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path === '/health' || req.path === '/healthz' || req.path === '/api/health' || req.path === '/api/healthz',
   message: { message: 'Too many requests from this IP, please try again later.' },
 });
 app.use('/api/', limiter);
@@ -84,16 +97,25 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 
-// Health check routes. /healthz reports 503 until MongoDB is connected so
-// platform health checks don't mark a DB-less instance as healthy.
-app.get("/", (req, res) => {
-  res.send("StudyTantra API is running...");
+// Health check handler: /health, /healthz, /api/health, /api/healthz
+// Reports 200 with status ok and db connected once Mongo is up.
+// Reports 503 until MongoDB is connected so platform health checks (Render/Railway)
+// don't mark a DB-less instance as healthy.
+const healthHandler = (req, res) => {
+  const dbReady = mongoose.connection.readyState === 1;
+  res.status(dbReady ? 200 : 503).json({
+    status: dbReady ? 'ok' : 'degraded',
+    db: dbReady ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+  });
+};
+
+app.get('/', (req, res) => {
+  res.send('StudyTantra API is running...');
 });
 
-app.get("/healthz", (req, res) => {
-  const dbReady = mongoose.connection.readyState === 1;
-  res.status(dbReady ? 200 : 503).json({ status: dbReady ? 'ok' : 'degraded', db: dbReady ? 'connected' : 'disconnected' });
-});
+app.get(['/health', '/healthz', '/api/health', '/api/healthz'], healthHandler);
 
 // Fail fast instead of letting Mongoose buffer queries until they time out.
 app.use('/api', (req, res, next) => {

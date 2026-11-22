@@ -653,7 +653,19 @@ The Gemini smoke test is intentionally excluded from CI.
 
 ## 15. Deployment
 
-The reference setup is **Railway** for the API and **Vercel** for the web app, with **MongoDB Atlas** and **Cloudinary**.
+The reference setup is **Render** (or **Railway**) for the API and **Vercel** for the web app, with **MongoDB Atlas** and **Cloudinary**.
+
+### Backend (Render)
+
+1. Create a **Web Service** on Render and connect your repository:
+   - **Root Directory**: `backend`
+   - **Environment**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start` (runs `node src/server.js`)
+   - **Health Check Path**: `/healthz` (or `/health` or `/api/health`)
+2. Set `NODE_ENV=production` and every variable from `backend/.env.example` (see [Configuration](#7-configuration-reference)). `CLIENT_URL` must be your frontend URL (e.g. `https://study-tantra-mern.vercel.app`), and `ALLOWED_ORIGIN` includes it.
+3. Render automatically provisions a dynamic `PORT` environment variable which `src/server.js` binds to `0.0.0.0`.
+4. The backend supports the full **10 MB PDF upload limit** natively without serverless payload bottlenecks.
 
 ### Backend (Railway)
 
