@@ -70,7 +70,17 @@ export const readFile = async (doc) => {
       });
 
   if (!url) throw new Error('Document has no stored file');
-  const response = await fetch(url);
+
+  // Fetch with a timeout so a stalled Cloudinary download cannot leave an
+  // ingestion job (and its concurrency slot) occupied forever.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  let response;
+  try {
+    response = await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!response.ok) {
     throw new Error(`Failed to fetch stored file: ${response.status} ${response.statusText}`);
   }

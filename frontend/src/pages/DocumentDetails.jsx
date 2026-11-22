@@ -232,7 +232,10 @@ const DocumentDetails = () => {
             tab === 'pdf' ? 'flex' : 'hidden'
           } lg:flex flex-col w-full lg:w-[58%] xl:w-[62%] bg-surface-container-low rounded-2xl p-3 sm:p-4 border border-outline-variant/30 min-h-0 shadow-xs`}
         >
-          {fileBlob || fileUrl ? (
+          {fileUrl || fileBlob ? (
+            // Prefer the object URL string (`fileUrl`) so react-pdf can fetch it.
+            // Passing a raw Blob (`fileBlob`) to react-pdf's `file` prop is not
+            // supported and made the viewer hang with a promise-related error.
             <Suspense
               fallback={
                 <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant gap-3 py-16 animate-pulse">
@@ -242,7 +245,7 @@ const DocumentDetails = () => {
               }
             >
               <PdfViewer
-                fileUrl={fileBlob || fileUrl}
+                fileUrl={fileUrl || fileBlob}
                 page={page}
                 onPageChange={setPage}
                 onSelectionAction={handleSelectionAction}
