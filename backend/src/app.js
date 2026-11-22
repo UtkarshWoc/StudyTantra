@@ -115,7 +115,10 @@ app.get('/', (req, res) => {
   res.send('StudyTantra API is running...');
 });
 
-app.get(['/health', '/healthz', '/api/health', '/api/healthz'], healthHandler);
+app.get('/health', healthHandler);
+app.get('/healthz', healthHandler);
+app.get('/api/health', healthHandler);
+app.get('/api/healthz', healthHandler);
 
 // Fail fast instead of letting Mongoose buffer queries until they time out.
 app.use('/api', (req, res, next) => {
