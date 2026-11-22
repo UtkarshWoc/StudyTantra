@@ -1,9 +1,13 @@
 import axios from 'axios';
 
-const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
-// When VITE_API_URL is set (separate backend host), call it directly. Otherwise
-// use a relative /api path, which only works if something in front of the app
-// proxies /api (a Vercel rewrite or the Vite dev proxy).
+const envUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+// The Render backend is our production host (supporting full 10MB uploads without Vercel serverless 4.5MB limits).
+// If VITE_API_URL is empty or still pointing to the deprecated Vercel serverless backend, use Render.
+const RENDER_BACKEND_URL = 'https://studytantra-mern-1.onrender.com';
+const rawApiUrl = (!envUrl || envUrl.includes('study-tantra-backend.vercel.app'))
+  ? (import.meta.env.PROD ? RENDER_BACKEND_URL : 'http://localhost:5000')
+  : envUrl;
+
 export const API_BASE = rawApiUrl ? `${rawApiUrl}/api` : '/api';
 
 if (import.meta.env.PROD && !rawApiUrl) {
@@ -63,6 +67,13 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const { config, response } = error;
+    // Automatic retry on 503 (Render free tier spin-up takes ~50s)
+    if (response?.status === 503 && config && (config._retry503Count || 0) < 3) {
+      config._retry503Count = (config._retry503Count || 0) + 1;
+      const delay = config._retry503Count * 3000;
+      await new Promise((r) => setTimeout(r, delay));
+      return api(config);
+    }
     if (response?.status === 401 && config && !config._retried && !NO_REFRESH.test(config.url || '')) {
       config._retried = true;
       try {

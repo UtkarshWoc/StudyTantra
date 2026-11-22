@@ -67,9 +67,13 @@ const UploadModal = ({ isOpen, onClose }) => {
           }, 1200);
         },
         onError: (error) => {
+          const status = error?.response?.status;
+          const is413 = status === 413 || error?.message?.includes('413') || error?.message?.toLowerCase().includes('payload too large');
           const isTimeout = error?.code === 'ECONNABORTED' || error?.message?.toLowerCase().includes('timeout');
           const isNetworkError = !error?.response || error?.message === 'Network Error' || error?.code === 'ERR_NETWORK';
-          if (isTimeout) {
+          if (is413) {
+            setErrorMsg('File exceeds the server payload limit. Please ensure the file is under 10MB.');
+          } else if (isTimeout) {
             setErrorMsg(
               'Upload timed out. The backend may be waking up from inactivity (Render free tier). Please wait 30–60 s and try again.'
             );
