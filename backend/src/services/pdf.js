@@ -6,11 +6,20 @@ import { extractText, getDocumentProxy } from 'unpdf';
  */
 export const extractPdfPages = async (buffer) => {
   const pdf = await getDocumentProxy(new Uint8Array(buffer));
-  const { totalPages, text } = await extractText(pdf, { mergePages: false });
-  return {
-    pageCount: totalPages,
-    pages: text.map((t, i) => ({ page: i + 1, text: (t || '').replace(/[ \t]+/g, ' ').trim() })),
-  };
+  try {
+    const { totalPages, text } = await extractText(pdf, { mergePages: false });
+    return {
+      pageCount: totalPages,
+      pages: text.map((t, i) => ({ page: i + 1, text: (t || '').replace(/[ \t]+/g, ' ').trim() })),
+    };
+  } finally {
+    try {
+      await pdf.cleanup();
+      await pdf.destroy?.();
+    } catch {
+      // Ignore cleanup error if already closed
+    }
+  }
 };
 
 export const pagesToText = (pages) => pages.map((p) => `[p. ${p.page}]\n${p.text}`).join('\n\n');

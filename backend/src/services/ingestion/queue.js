@@ -2,9 +2,8 @@ import Document from '../../models/Document.js';
 import { ingestDocument } from './ingest.js';
 import { logger } from '../../config/logger.js';
 
-// Minimal in-process job queue. Good for a single API instance; with several
-// instances, move this to a shared queue (e.g. BullMQ/Redis or Agenda/Mongo).
-const CONCURRENCY = 2;
+// Limit background concurrency to 1 to stay well within memory limits (Render 512MB RAM).
+const CONCURRENCY = 1;
 const pending = [];
 const queued = new Set();
 let running = 0;
@@ -48,28 +47,31 @@ export const whenIdle = () =>
   });
 
 /**
- * On boot: pick up documents interrupted mid-processing and index documents
- * uploaded before ingestion existed (no status yet).
- * Cleans up stale abandoned processing documents so they don't block the queue.
+ * On boot: clean up documents interrupted mid-processing.
+ * Any document left in 'processing' when the server boots was abruptly aborted
+ * (e.g. by an OOM crash or container restart). Marking them 'failed' prevents an
+ * infinite crash-restart loop on memory-constrained servers (Render free tier).
  */
 export const resumePendingIngestion = async () => {
-  const staleCutoff = new Date(Date.now() - 20 * 60 * 1000);
   try {
-    // Mark ancient unfinished documents as failed so they don't loop endlessly
-    await Document.updateMany(
-      { status: 'processing', updatedAt: { $lt: staleCutoff } },
+    const interrupted = await Document.updateMany(
+      { status: 'processing' },
       {
         status: 'failed',
-        processingError: 'Processing timed out. Please use the Retry button to reprocess.',
+        processingError: 'Processing was interrupted by a server restart or memory limit. Use the Retry button to try again.',
       }
     );
+    if (interrupted.modifiedCount > 0) {
+      logger.warn({ count: interrupted.modifiedCount }, 'Marked interrupted processing documents as failed');
+    }
   } catch (err) {
-    logger.warn({ err: err.message }, 'Could not clean up stale documents');
+    logger.warn({ err: err.message }, 'Could not clean up interrupted documents');
   }
 
-  const docs = await Document.find({
-    $or: [{ status: 'processing', updatedAt: { $gte: staleCutoff } }, { status: { $exists: false } }],
-  }).select('_id');
-  if (docs.length) logger.info({ count: docs.length }, 'Queueing recent documents for ingestion');
-  docs.forEach((d) => enqueueIngestion(d._id));
+  // Only index documents uploaded before ingestion existed (no status field at all)
+  const legacyDocs = await Document.find({ status: { $exists: false } }).select('_id');
+  if (legacyDocs.length) {
+    logger.info({ count: legacyDocs.length }, 'Queueing legacy documents for ingestion');
+    legacyDocs.forEach((d) => enqueueIngestion(d._id));
+  }
 };
