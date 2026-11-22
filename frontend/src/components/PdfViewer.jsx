@@ -66,6 +66,9 @@ const PdfViewer = ({ fileUrl, page = 1, onPageChange, onSelectionAction }) => {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return undefined;
+    if (el.clientWidth) {
+      setWidth(Math.floor(el.clientWidth));
+    }
     const observer = new ResizeObserver(([entry]) => {
       setWidth(Math.floor(entry.contentRect.width));
     });
@@ -179,8 +182,10 @@ const PdfViewer = ({ fileUrl, page = 1, onPageChange, onSelectionAction }) => {
     if (selection) setSelection(null);
   };
 
-  // Compute page width for rendering
-  const computedPageWidth = width > 0 ? Math.max(260, Math.floor((width - 40) * scale)) : 0;
+  // Compute page width for rendering (fallback to 600 if container width is still measuring)
+  const computedPageWidth = width > 0
+    ? Math.max(260, Math.floor((width - 40) * scale))
+    : Math.max(260, Math.floor(((containerRef.current?.clientWidth || 600) - 40) * scale));
 
   return (
     <div className="flex flex-col h-full min-h-0">

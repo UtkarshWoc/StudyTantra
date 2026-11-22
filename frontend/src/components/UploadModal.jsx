@@ -67,10 +67,15 @@ const UploadModal = ({ isOpen, onClose }) => {
           }, 1200);
         },
         onError: (error) => {
+          const isTimeout = error?.code === 'ECONNABORTED' || error?.message?.toLowerCase().includes('timeout');
           const isNetworkError = !error?.response || error?.message === 'Network Error' || error?.code === 'ERR_NETWORK';
-          if (isNetworkError) {
+          if (isTimeout) {
             setErrorMsg(
-              'Upload failed (Network Error). This usually occurs if the connection dropped, the upload timed out, or the host payload limit was exceeded. Please try again.'
+              'Upload timed out. The backend may be waking up from inactivity (Render free tier). Please wait 30–60 s and try again.'
+            );
+          } else if (isNetworkError) {
+            setErrorMsg(
+              'Upload failed — could not reach the server. The backend may still be warming up. Please wait a moment and try again.'
             );
           } else {
             setErrorMsg(getErrorMessage(error, 'Error uploading file. Please try again.'));

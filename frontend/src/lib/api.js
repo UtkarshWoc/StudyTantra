@@ -22,7 +22,11 @@ export const setAccessToken = (token) => { accessToken = token; };
 export const getAccessToken = () => accessToken;
 export const setSessionExpiredHandler = (fn) => { onSessionExpired = fn; };
 
-export const api = axios.create({ baseURL: API_BASE, withCredentials: true });
+// Default timeout for every request. Render free tier can take up to ~50 s to
+// warm up from spin-down; we give it 90 s so the spinner stays alive instead of
+// producing a silent "Network Error". Callers that need a different limit can
+// pass { timeout: N } in their own request config.
+export const api = axios.create({ baseURL: API_BASE, withCredentials: true, timeout: 90_000 });
 
 api.interceptors.request.use((config) => {
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;

@@ -63,7 +63,8 @@ export const useUploadDocument = () => {
       const form = new FormData();
       form.append('document', file);
       form.append('title', title);
-      return api.post('/documents', form).then((r) => r.data);
+      // Give uploads up to 3 minutes for 10MB payloads + server processing
+      return api.post('/documents', form, { timeout: 180_000 }).then((r) => r.data);
     },
     onSuccess: (doc) => {
       qc.setQueryData(keys.document(doc._id), doc);
@@ -110,14 +111,21 @@ export const useToggleDocumentFavorite = () => {
 
 /**
  * Fetch the private PDF through the API and expose it as an object URL.
+ * Uses a 60 s timeout so a cold Render spin-up doesn't hang the viewer forever;
+ * the query will retry automatically on the next render if it times out.
  */
 export const useDocumentFileUrl = (id) => {
   const query = useQuery({
     queryKey: ['documentFile', id],
-    queryFn: () => api.get(`/documents/${id}/file`, { responseType: 'blob' }).then((r) => r.data),
+    queryFn: () =>
+      api
+        .get(`/documents/${id}/file`, { responseType: 'blob', timeout: 60_000 })
+        .then((r) => r.data),
     enabled: Boolean(id),
     staleTime: Infinity,
     gcTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(5_000 * 2 ** attempt, 30_000),
   });
   const [url, setUrl] = useState(null);
   useEffect(() => {

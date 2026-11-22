@@ -87,6 +87,7 @@ export const getDocumentFile = async (req, res) => {
     'Content-Length': buffer.length,
     'Content-Disposition': `inline; filename="${encodeURIComponent(document.filename)}"`,
     'Cache-Control': 'private, max-age=300',
+    'Cross-Origin-Resource-Policy': 'cross-origin',
   });
   res.send(buffer);
 };

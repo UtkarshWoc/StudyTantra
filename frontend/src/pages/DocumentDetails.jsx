@@ -232,10 +232,7 @@ const DocumentDetails = () => {
             tab === 'pdf' ? 'flex' : 'hidden'
           } lg:flex flex-col w-full lg:w-[58%] xl:w-[62%] bg-surface-container-low rounded-2xl p-3 sm:p-4 border border-outline-variant/30 min-h-0 shadow-xs`}
         >
-          {fileUrl || fileBlob ? (
-            // Prefer the object URL string (`fileUrl`) so react-pdf can fetch it.
-            // Passing a raw Blob (`fileBlob`) to react-pdf's `file` prop is not
-            // supported and made the viewer hang with a promise-related error.
+          {fileUrl ? (
             <Suspense
               fallback={
                 <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant gap-3 py-16 animate-pulse">
@@ -245,28 +242,36 @@ const DocumentDetails = () => {
               }
             >
               <PdfViewer
-                fileUrl={fileUrl || fileBlob}
+                fileUrl={fileUrl}
                 page={page}
                 onPageChange={setPage}
                 onSelectionAction={handleSelectionAction}
               />
             </Suspense>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant gap-2">
+            <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant gap-2 p-6 text-center">
               {fileFailed ? (
-                <div className="text-center p-6">
-                  <p className="text-xs text-error mb-2">Could not stream the PDF source.</p>
+                <div className="flex flex-col items-center gap-3">
+                  <span className="material-symbols-outlined text-4xl text-error">cloud_off</span>
+                  <p className="text-sm font-semibold text-on-surface">Could not load PDF</p>
+                  <p className="text-xs text-on-surface-variant max-w-xs leading-relaxed">
+                    The backend may still be warming up (Render free tier can take up to 60 s after inactivity).
+                    Wait a moment, then retry.
+                  </p>
                   <button
                     onClick={() => window.location.reload()}
-                    className="text-xs text-primary underline font-medium cursor-pointer"
+                    className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-on-primary text-xs font-semibold shadow-xs hover:bg-primary/90 cursor-pointer transition-colors"
                   >
-                    Reload
+                    <RefreshCw size={13} /> Retry
                   </button>
                 </div>
               ) : (
                 <>
                   <Loader2 className="animate-spin text-primary" size={28} />
-                  <span className="text-xs font-label">Streaming document pages...</span>
+                  <span className="text-xs font-label">Streaming document pages…</span>
+                  <span className="text-[11px] text-outline mt-1">
+                    If the backend is warming up this may take up to 60 s
+                  </span>
                 </>
               )}
             </div>

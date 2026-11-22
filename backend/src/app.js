@@ -65,7 +65,13 @@ app.use(cors({
 }));
 
 // Security headers
-app.use(helmet());
+// crossOriginResourcePolicy must be cross-origin so the Vercel frontend (different origin)
+// can stream binary files (PDFs) and receive API payloads without browser CORP blocking.
+// crossOriginOpenerPolicy allows popups for OAuth and Google Sign-In.
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+}));
 
 // Structured request logging (auth headers/cookies are redacted in config/logger.js)
 const isHealthUrl = (url) =>
